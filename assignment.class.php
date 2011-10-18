@@ -493,7 +493,6 @@ class assignment_simpleupload extends assignment_base {
                 $button = new portfolio_add_button();
             }
             foreach ($files as $file) {
-                print_object($file);
                 $filename = $file->get_filename();
                 $filepath = $file->get_filepath();
                 $mimetype = $file->get_mimetype();
