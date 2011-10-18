@@ -493,12 +493,14 @@ class assignment_simpleupload extends assignment_base {
                 $button = new portfolio_add_button();
             }
             foreach ($files as $file) {
+                print_object($file);
                 $filename = $file->get_filename();
+                $filepath = $file->get_filepath();
                 $mimetype = $file->get_mimetype();
                 $path = file_encode_url($CFG->wwwroot.'/pluginfile.php', '/'.$this->context->id.'/mod_assignment/submission/'.$submission->id.'/'.$filename);
                 $output .= '<a href="'.$path.'" ><img src="'.$OUTPUT->pix_url(file_mimetype_icon($mimetype)).'" class="icon" alt="'.$mimetype.'" />'.s($filename).'</a>';
                 if ($candelete) {
-                    $delurl  = "$CFG->wwwroot/mod/assignment/delete.php?id={$this->cm->id}&amp;file=$filename&amp;userid={$submission->userid}&amp;mode=$mode&amp;offset=$offset";
+                    $delurl  = "$CFG->wwwroot/mod/assignment/delete.php?id={$this->cm->id}&amp;path=$filepath&amp;file=$filename&amp;userid={$submission->userid}&amp;mode=$mode&amp;offset=$offset";
 
                     $output .= '<a href="'.$delurl.'">&nbsp;'
                               .'<img title="'.$strdelete.'" src="'.$OUTPUT->pix_url('/t/delete').'" class="iconsmall" alt="" /></a> ';
@@ -524,88 +526,6 @@ class assignment_simpleupload extends assignment_base {
         }
         echo $output;
     }
-
-    /*function delete() {
-        global $CFG, $OUTPUT, $DB;
-
-        $file     = required_param('file', PARAM_FILE);
-        $userid   = required_param('userid', PARAM_INT);
-        $confirm  = optional_param('confirm', 0, PARAM_BOOL);
-        $mode     = optional_param('mode', '', PARAM_ALPHA);
-        $offset   = optional_param('offset', 0, PARAM_INT);
-
-        require_login($this->course->id, false, $this->cm);
-
-        if (empty($mode)) {
-            $urlreturn = 'view.php';
-            $optionsreturn = array('id'=>$this->cm->id);
-            $returnurl = 'view.php?id='.$this->cm->id;
-        } else {
-            $urlreturn = 'submissions.php';
-            $optionsreturn = array('id'=>$this->cm->id, 'offset'=>$offset, 'mode'=>$mode, 'userid'=>$userid);
-            $returnurl = "submissions.php?id={$this->cm->id}&amp;offset=$offset&amp;mode=$mode&amp;userid=$userid";
-        }
-
-        if (!$submission = $this->get_submission($userid) // incorrect submission
-          or !$this->can_delete_files($submission)) {     // can not delete
-            $this->view_header(get_string('delete'));
-            notify(get_string('cannotdeletefiles', 'assignment'));
-            print_continue($returnurl);
-            $this->view_footer();
-            die;
-        }
-        $fs = get_file_storage();
-        $files = $fs->get_area_files($this->context->id, 'mod_assignment', 'submission', $submission->id, "timemodified", false);
-
-        if (!data_submitted('nomatch') or !$confirm or !confirm_sesskey()) {
-            $optionsyes = array ('id'=>$this->cm->id, 'file'=>$file, 'userid'=>$userid, 'confirm'=>1, 'sesskey'=>sesskey(), 'mode'=>$mode, 'offset'=>$offset, 'sesskey'=>sesskey());
-            if (empty($mode)) {
-                $this->view_header(get_string('delete'));
-            } else {
-                print_header(get_string('delete'));
-            }
-
-            echo $OUTPUT->heading(get_string('delete'));
-            $yesbtn = new single_button(new moodle_url("delete.php", $optionsyes), get_string('yes'), "POST");
-            $nobtn = new single_button(new moodle_url($urlreturn, $optionsreturn), get_string('no'), "GET");
-            echo $OUTPUT->confirm(get_string('confirmdeletefile', 'assignment', $file), $yesbtn, $nobtn);
-
-            if (empty($mode)) {
-                $this->view_footer();
-            } else {
-                print_footer('none');
-            }
-            die;
-        }
-
-        if($fs->delete_area_files($this->context->id, 'mod_assignment', 'submission', $submission->id)===true) {
-            $updated = new object();
-            $updated->id = $submission->id;
-            $updated->timemodified = time();
-            if ($DB->update_record('assignment_submissions', $updated)) {
-                add_to_log($this->course->id, 'assignment', 'upload', //TODO: add delete action to log
-                        'view.php?a='.$this->assignment->id, $this->assignment->id, $this->cm->id);
-                $submission = $this->get_submission($userid);
-                $this->update_grade($submission);
-            }
-            redirect($returnurl, '', 0);
-        }
-
-        // print delete error
-        if (empty($mode)) {
-            $this->view_header(get_string('delete'));
-        } else {
-            print_header(get_string('delete'));
-        }
-        notify(get_string('deletefilefailed', 'assignment'));
-        print_continue($returnurl);
-        if (empty($mode)) {
-            $this->view_footer();
-        } else {
-            print_footer('none');
-        }
-        die;
-    }*/
 
 
     /**
@@ -1003,6 +923,7 @@ class assignment_simpleupload extends assignment_base {
         $confirm  = optional_param('confirm', 0, PARAM_BOOL);
         $mode     = optional_param('mode', '', PARAM_ALPHA);
         $offset   = optional_param('offset', 0, PARAM_INT);
+        $path     = optional_param('path', '/', PARAM_PATH);
 
         require_login($this->course->id, false, $this->cm);
 
@@ -1026,7 +947,7 @@ class assignment_simpleupload extends assignment_base {
         }
 
         if (!data_submitted() or !$confirm or !confirm_sesskey()) {
-            $optionsyes = array ('id'=>$this->cm->id, 'file'=>$file, 'userid'=>$userid, 'confirm'=>1, 'sesskey'=>sesskey(), 'mode'=>$mode, 'offset'=>$offset, 'sesskey'=>sesskey());
+            $optionsyes = array ('id'=>$this->cm->id, 'file'=>$file, 'path'=>$path, 'userid'=>$userid, 'confirm'=>1, 'sesskey'=>sesskey(), 'mode'=>$mode, 'offset'=>$offset, 'sesskey'=>sesskey());
             if (empty($mode)) {
                 $this->view_header(get_string('delete'));
             } else {
@@ -1034,7 +955,12 @@ class assignment_simpleupload extends assignment_base {
                 echo $OUTPUT->header();
             }
             echo $OUTPUT->heading(get_string('delete'));
-            echo $OUTPUT->confirm(get_string('confirmdeletefile', 'assignment', $file), new moodle_url('delete.php', $optionsyes), new moodle_url($urlreturn, $optionsreturn));
+            if($path=='/') {
+                $filepath = $file;
+            } else {
+                $filepath = $path.$file;
+            }
+            echo $OUTPUT->confirm(get_string('confirmdeletefile', 'assignment', $filepath), new moodle_url('delete.php', $optionsyes), new moodle_url($urlreturn, $optionsreturn));
             if (empty($mode)) {
                 $this->view_footer();
             } else {
@@ -1044,7 +970,7 @@ class assignment_simpleupload extends assignment_base {
         }
 
         $fs = get_file_storage();
-        if ($file = $fs->get_file($this->context->id, 'mod_assignment', 'submission', $submission->id, '/', $file)) {
+        if ($file = $fs->get_file($this->context->id, 'mod_assignment', 'submission', $submission->id, $path, $file)) {
             $file->delete();
             $submission->timemodified = time();
             $DB->update_record('assignment_submissions', $submission);
