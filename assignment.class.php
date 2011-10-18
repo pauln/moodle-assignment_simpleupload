@@ -195,19 +195,34 @@ class assignment_simpleupload extends assignment_base {
             echo $OUTPUT->box_start('boxaligncenter uploadbox', 'simpleuploadbox');
             $fs = get_file_storage();
 
+            if ($submission = $this->get_submission($USER->id)) {
+                $filecount = $this->count_user_files($submission->id);
+            } else {
+                $filecount = 0;
+            }
+            if ($filecount) {
+                $str = get_string('managefiles', 'assignment_simpleupload');
+            } else {
+                $str = get_string('advanceduploadafile', 'assignment_simpleupload');
+            }
+
             $advlink = $OUTPUT->box_start();
-            $advlink .= $OUTPUT->action_link(new moodle_url('/mod/assignment/type/simpleupload/upload.php', array('contextid'=>$this->context->id, 'userid'=>$USER->id)), get_string('advanceduploadafile', 'assignment_simpleupload'));
+            $advlink .= $OUTPUT->action_link(new moodle_url('/mod/assignment/type/simpleupload/upload.php', array('contextid'=>$this->context->id, 'userid'=>$USER->id)), $str);
             $advlink .= $OUTPUT->box_end();
 
-            $options = array('maxbytes'=>get_max_upload_file_size($CFG->maxbytes, $this->course->maxbytes, $this->assignment->maxbytes), 'accepted_types'=>'*', 'return_types'=>FILE_INTERNAL);
-            $mform = new mod_assignment_simpleuploadsimple_form(new moodle_url('/mod/assignment/type/simpleupload/simpleupload.php'), array('caption'=>get_string('addafile', 'assignment_simpleupload'), 'cmid'=>$this->cm->id, 'contextid'=>$this->context->id, 'userid'=>$USER->id, 'options'=>$options, 'advancedlink'=>$advlink));
-            if ($mform->is_cancelled()) {
-                redirect(new moodle_url('/mod/assignment/view.php', array('id'=>$this->cm->id)));
-            } else if ($mform->get_data()) {
-                $this->upload($mform);
-                die();
+            if($filecount < $this->assignment->var1) { // maxfiles
+                $options = array('maxbytes'=>get_max_upload_file_size($CFG->maxbytes, $this->course->maxbytes, $this->assignment->maxbytes), 'accepted_types'=>'*', 'return_types'=>FILE_INTERNAL);
+                $mform = new mod_assignment_simpleuploadsimple_form(new moodle_url('/mod/assignment/type/simpleupload/simpleupload.php'), array('caption'=>get_string('addafile', 'assignment_simpleupload'), 'cmid'=>$this->cm->id, 'contextid'=>$this->context->id, 'userid'=>$USER->id, 'options'=>$options, 'advancedlink'=>$advlink));
+                if ($mform->is_cancelled()) {
+                    redirect(new moodle_url('/mod/assignment/view.php', array('id'=>$this->cm->id)));
+                } else if ($mform->get_data()) {
+                    $this->upload($mform);
+                    die();
+                }
+                $mform->display();
+            } else {
+                echo $OUTPUT->box($advlink, 'mform');
             }
-            $mform->display();
             echo $OUTPUT->box_end();
         }
     }
