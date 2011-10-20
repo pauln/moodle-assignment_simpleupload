@@ -250,11 +250,44 @@ class assignment_simpleupload extends assignment_base {
             if ($formdata = $mform->get_data()) {
                 $fs = get_file_storage();
                 $submission = $this->get_submission($USER->id, true); //create new submission if needed
-                
-                if ($newfilename = $mform->get_new_filename('assignment_file')) {
-                    $file = $mform->save_stored_file('assignment_file', $this->context->id, 'mod_assignment', 'submission',
-                        $submission->id, '/', $newfilename);
 
+                if (!array_key_exists('assignment_file', $_FILES)) {
+                    redirect($viewurl, get_string('uploaderror', 'assignment'), 10);
+                    exit;
+                }
+                $filedetails = $_FILES['assignment_file'];
+
+                $filename = $filedetails['name'];
+                $filesrc = $filedetails['tmp_name'];
+
+                if (!is_uploaded_file($filesrc)) {
+                    redirect($viewurl, get_string('uploaderror', 'assignment'), 10);
+                    exit;
+                }
+
+                $ext = substr(strrchr($filename, '.'), 1);
+
+                $temp_name=basename($filename,".$ext"); // We want to clean the file's base name only
+                // Run param_clean here with PARAM_FILE so that we end up with a name that other parts of Moodle
+                // (download script, deletion, etc) will handle properly.  Remove leading/trailing dots too.
+                $temp_name=trim(clean_param($temp_name, PARAM_FILE),".");
+                $filename=$temp_name.".$ext";
+                // check for filename already existing and add suffix #.
+                $n=1;
+                while($fs->file_exists($this->context->id, 'mod_assignment', 'submission', $submission->id, '/', $filename)) {
+                    $filename=$temp_name.'_'.$n++.".$ext";
+                }
+
+                // Create file
+                $fileinfo = array(
+                      'contextid' => $this->context->id,
+                      'component' => 'mod_assignment',
+                      'filearea' => 'submission',
+                      'itemid' => $submission->id,
+                      'filepath' => '/',
+                      'filename' => $filename
+                      );
+                if ($file = $fs->create_file_from_pathname($fileinfo, $filesrc)) {
                     $updates = new stdClass(); //just enough data for updating the submission
                     $updates->timemodified = time();
                     $updates->numfiles     = 1;
