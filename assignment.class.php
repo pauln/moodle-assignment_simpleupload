@@ -211,7 +211,7 @@ class assignment_simpleupload extends assignment_base {
             $advlink .= $OUTPUT->box_end();
 
             if($filecount < $this->assignment->var1) { // maxfiles
-                $options = array('maxbytes'=>get_max_upload_file_size($CFG->maxbytes, $this->course->maxbytes, $this->assignment->maxbytes), 'accepted_types'=>'*', 'return_types'=>FILE_INTERNAL);
+                $options = array('maxbytes'=>get_max_upload_file_size($CFG->maxbytes, $this->course->maxbytes, $this->assignment->maxbytes), 'accepted_types'=>'*');
                 $mform = new mod_assignment_simpleuploadsimple_form(new moodle_url('/mod/assignment/type/simpleupload/simpleupload.php'), array('caption'=>get_string('addafile', 'assignment_simpleupload'), 'cmid'=>$this->cm->id, 'contextid'=>$this->context->id, 'userid'=>$USER->id, 'options'=>$options, 'advancedlink'=>$advlink));
                 if ($mform->is_cancelled()) {
                     redirect(new moodle_url('/mod/assignment/view.php', array('id'=>$this->cm->id)));
